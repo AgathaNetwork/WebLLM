@@ -1,25 +1,14 @@
 # 忽略 node_modules 目录
 node_modules/
-
-# 忽略配置文件
 config.yml
-
-# 忽略环境变量文件
 .env
-
-# 忽略日志文件
 logs/
 *.log
-
-# 忽略编译输出
 dist/
 build/
-
-# 忽略 IDE 和编辑器的配置文件
 .vscode/
 .idea/
 *.iml
-
-# 忽略系统文件
 .DS_Store
 Thumbs.db
+config.yml

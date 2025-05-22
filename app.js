@@ -44,6 +44,32 @@ async function initSqlConnection() {
   // 静态文件服务
   app.use(express.static(path.join(__dirname, 'public')));
 
+  // 定义 /validate API
+  app.post('/validate', async (req, res) => {
+    const sess = req.body.sess;
+    if (!sess) {
+        return res.status(400).json({ status: 'pass_failed', message: 'Session parameter is missing' });
+    }
+
+    try {
+        const result = await sqlManager.query('SELECT username, status, expiry FROM sessions WHERE session = ?', [sess]);
+        if (result.length === 0 || result[0].status !== 1) {
+            return res.json({ status: 'pass_failed' });
+        }
+
+        // 检查 expiry 是否大于当前时间戳
+        const currentTime = Math.floor(Date.now() / 1000); // 当前时间戳（秒）
+        if (result[0].expiry <= currentTime) {
+            return res.json({ status: 'pass_failed', message: 'Session has expired' });
+        }
+
+        return res.json({ username: result[0].username });
+    } catch (error) {
+        console.error('Error validating session:', error.message);
+        return res.status(500).json({ status: 'pass_failed', message: 'Internal server error' });
+    }
+});
+
   // 启动服务器
   app.listen(port, () => {
     console.log(`http://localhost:${port}`);
