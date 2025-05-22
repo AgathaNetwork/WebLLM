@@ -3,9 +3,11 @@ const app = express();
 const path = require('path');
 const yaml = require('js-yaml');
 const fs = require('fs').promises;
+const SqlManager = require('./base/SqlManager'); // 引入 SqlManager
 
 // 读取配置文件
 let config;
+let sqlManager; // 定义 sqlManager 变量
 
 async function loadConfig() {
   try {
@@ -21,8 +23,21 @@ async function loadConfig() {
   }
 }
 
+// 初始化数据库连接
+async function initSqlConnection() {
+  try {
+    sqlManager = new SqlManager(config);
+    await sqlManager.init();
+    console.log('SQL connection initialized successfully.');
+  } catch (error) {
+    console.error('Failed to initialize SQL connection:', error.message);
+    process.exit(1); // 如果数据库连接初始化失败，终止程序
+  }
+}
+
 (async () => {
   await loadConfig();
+  await initSqlConnection(); // 在启动时初始化 SQL 连接
 
   const port = config.port;
 
