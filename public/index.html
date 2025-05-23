@@ -45,12 +45,52 @@
     </div>
     
     <script>
+        // 读取 cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        // 校验 sess
+        async function validateSession() {
+            const sess = getCookie('sess');
+            if (!sess) {
+                window.location.href = 'https://mc.hyp.ink/accounts/';
+                return;
+            }
+
+            try {
+                const response = await fetch('/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sess })
+                });
+                const data = await response.json();
+
+                if (data.status === 'pass_failed') {
+                    window.location.href = 'https://mc.hyp.ink/accounts/';
+                } else {
+                    const username = data.username || '用户';
+                    document.getElementById('user-input').placeholder = `以${username}的身份输入消息`;
+                }
+            } catch (error) {
+                console.error('Session validation failed:', error);
+                window.location.href = 'https://mc.hyp.ink/accounts/';
+            }
+        }
+
+        // 页面加载时校验 sess
+        document.addEventListener('DOMContentLoaded', validateSession);
+
         document.getElementById('send-button').addEventListener('click', function() {
             const userInput = document.getElementById('user-input').value;
             if (userInput.trim() !== '') {
                 appendMessage('您', userInput);
                 document.getElementById('user-input').value = '';
-                // 这里可以添加代码将消息发送到服务器并接收响应
+                sendChatMessage(userInput);
             }
         });
 
@@ -61,6 +101,60 @@
             messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 发送聊天消息并接收流式响应
+        async function sendChatMessage(message) {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+
+            if (response.ok) {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+                let aggregatedMessage = ''; // 新增变量，用于存储流式响应内容
+
+                while (true) {
+                    console.log("Receiving data");
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        
+                        console.log('Received chunk:', line);
+                        if (line.startsWith('data:')) {
+                            const data = line.substring(6);
+                            try {
+                                const chunk = JSON.parse(data);
+                                aggregatedMessage += chunk.output.text; // 拼接流式响应内容
+
+                                // 更新聊天框中的最后一条消息
+                                const chatMessages = document.getElementById('chat-messages');
+                                const lastMessage = chatMessages.lastElementChild;
+                                if (lastMessage && lastMessage.textContent.includes('Agatha Bot:')) {
+                                    lastMessage.innerHTML = `<strong>Agatha Bot:</strong> ${aggregatedMessage}`;
+                                } else {
+                                    appendMessage('Agatha Bot', aggregatedMessage);
+                                }
+                            } catch (error) {
+                                console.error('Error parsing chunk:', error);
+                            }
+                        }
+                    }
+                }
+            } else {
+                console.error('Error sending chat message:', response.statusText);
+            }
         }
     </script>
 </body>
