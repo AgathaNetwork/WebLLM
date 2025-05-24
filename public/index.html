@@ -4,15 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agatha Bot</title>
-    <link href="/css/bootstrap.min.css" rel="stylesheet">
-    <script src="/js/bootstrap.bundle.min.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- 删除: <link href="css/bicon.css" rel="stylesheet"> -->
+    <script src="js/bootstrap.bundle.min.js"></script>
     <style>
         /* 自定义样式 */
         .chat-container {
-            max-width: 800px; /* 增加对话框宽度 */
+            max-width: 100%; /* 修改为占满整个宽度 */
+            height: calc(100vh - 100px); /* 设置高度为总高度减去导航栏高度 */
         }
         .message {
             text-align: left; /* 内容靠左对齐 */
+        }
+        #chat-messages {
+            height: calc(100vh - 250px); /* 设置高度为总高度减去导航栏和输入框的高度 */
+        }
+        /* 新增样式：移除输入框和按钮的圆角 */
+        .input-group {
+            border-radius: 0; /* 移除整体圆角 */
+        }
+        #user-input {
+            border-top-right-radius: 0; /* 移除输入框右侧圆角 */
+            border-bottom-right-radius: 0;
+        }
+        #send-button {
+            border-top-left-radius: 0; /* 移除按钮左侧圆角 */
+            border-bottom-left-radius: 0;
+            position: relative; /* 为加载图标定位 */
         }
     </style>
 </head>
@@ -25,18 +43,21 @@
         </div>
     </nav>
 
-    <div class="container mt-5">
+    <div class="container mt-3">
         <div class="row justify-content-center">
-            <div class="col-md-8 text-center"> <!-- 修改列宽为 col-md-8 -->
+            <div class="col-md-12"> <!-- 修改列宽为 col-md-12 -->
                 <div class="card chat-container"> <!-- 添加自定义类 -->
                     <div class="card-header">
                         与Agatha Bot聊天
                     </div>
                     <div class="card-body">
-                        <div id="chat-messages" class="mb-3" style="height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
+                        <div id="chat-messages" class="mb-3" style="overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
                         <div class="input-group">
                             <input type="text" id="user-input" class="form-control" placeholder="输入您的消息...">
-                            <button class="btn btn-primary" id="send-button">发送</button>
+                            <button class="btn btn-primary" id="send-button">
+                                发送
+                                <!-- 删除: <i class="loading-icon bi bi-arrow-clockwise"></i> -->
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -88,9 +109,19 @@
         document.getElementById('send-button').addEventListener('click', function() {
             const userInput = document.getElementById('user-input').value;
             if (userInput.trim() !== '') {
+                const sendButton = document.getElementById('send-button');
+                
+                // 显示加载状态并禁用按钮
+                sendButton.textContent = '生成中...'; // 修改为显示文字“生成中...”
+                sendButton.disabled = true;
+
                 appendMessage('您', userInput);
                 document.getElementById('user-input').value = '';
-                sendChatMessage(userInput);
+                sendChatMessage(userInput).finally(() => {
+                    // 恢复按钮状态
+                    sendButton.textContent = '发送'; // 恢复按钮文字
+                    sendButton.disabled = false;
+                });
             }
         });
 
@@ -105,12 +136,18 @@
 
         // 发送聊天消息并接收流式响应
         async function sendChatMessage(message) {
+            const sess = getCookie('sess'); // 获取 sess 参数
+            if (!sess) {
+                console.error('Session parameter is missing');
+                return;
+            }
+
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ message, sess }) // 包含 sess 参数
             });
 
             if (response.ok) {
@@ -159,3 +196,5 @@
     </script>
 </body>
 </html>
+
+
