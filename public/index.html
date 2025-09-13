@@ -44,6 +44,8 @@
     </nav>
 
     <div class="container mt-3">
+        
+    <a href="/accounts/functions.html" class="text-decoration-none">返回</a>
         <div class="row justify-content-center">
             <div class="col-md-12"> <!-- 修改列宽为 col-md-12 -->
                 <div class="card chat-container"> <!-- 添加自定义类 -->
@@ -77,12 +79,12 @@
         async function validateSession() {
             const sess = getCookie('sess');
             if (!sess) {
-                window.location.href = 'https://mc.hyp.ink/accounts/';
+                window.location.href = 'https://mc.agatha.org.cn/accounts/';
                 return;
             }
 
             try {
-                const response = await fetch('/validate', {
+                const response = await fetch('/webllm/validate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -92,14 +94,14 @@
                 const data = await response.json();
 
                 if (data.status === 'pass_failed') {
-                    window.location.href = 'https://mc.hyp.ink/accounts/';
+                    window.location.href = 'https://mc.agatha.org.cn/accounts/';
                 } else {
                     const username = data.username || '用户';
                     document.getElementById('user-input').placeholder = `以${username}的身份输入消息`;
                 }
             } catch (error) {
                 console.error('Session validation failed:', error);
-                window.location.href = 'https://mc.hyp.ink/accounts/';
+                window.location.href = 'https://mc.agatha.org.cn/accounts/';
             }
         }
 
@@ -142,7 +144,7 @@
                 return;
             }
 
-            const response = await fetch('/chat', {
+            const response = await fetch('/webllm/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
